@@ -1,2 +1,4 @@
 # Napp Wordpress Theme
-Mobile first wordpress starter theme for Napp Development LLC
+Wordpress starter theme built for use in Napp Development web projects
+
+Copyright 2015 Napp Development LLC
