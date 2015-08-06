@@ -42,12 +42,15 @@ gulp.task('scss', function() {
 // Move images
 gulp.task('required-assets', function() {
   return gulp.src('source/assets/required/*')
-    .pipe(gulp.dest('app'));
+    .pipe(gulp.dest('app'))
+    .pipe(browsersync.stream());
+
 });
 
 gulp.task('bonus-assets', function() {
   return gulp.src('source/assets/bonus/*')
-    .pipe(gulp.dest('app/library/images'));
+    .pipe(gulp.dest('app/library/images'))
+    .pipe(browsersync.stream());
 });
 
 //Supply translations
@@ -60,11 +63,13 @@ gulp.task('translations', function() {
 gulp.task('watch', function() {
   gulp.watch('source/pages/*.php', ['pages']);
   gulp.watch('source/scss/**/*.scss', ['scss']);
+  gulp.watch('source/assets/bonus/*', ['bonus-assets']);
+  gulp.watch('source/assets/required/*', ['required-assets']);
 })
 
 gulp.task('browser-sync', function() {
     browsersync.init({
-        proxy: "localhost/napp"
+        proxy: "localhost/DB_NAME"
     });
 });
 
