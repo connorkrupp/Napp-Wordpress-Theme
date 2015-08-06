@@ -1,0 +1,16 @@
+{
+  "name": "napp-wordpress-theme",
+  "version": "1.0.0",
+  "description": "Wordpress theme built for use by Napp Development LLC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Connor Krupp",
+  "license": "ISC",
+  "devDependencies": {
+    "browser-sync": "^2.8.0",
+    "gulp": "^3.9.0",
+    "gulp-sass": "^2.0.4"
+  }
+}
