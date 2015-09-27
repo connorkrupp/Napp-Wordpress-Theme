@@ -6,6 +6,7 @@
 
 app/
 files/*
+node_modules/
 
 ############
 ## Bones

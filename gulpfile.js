@@ -1,76 +1,102 @@
+'use strict';
+
+// Include Gulp & tools we'll use
 var gulp = require('gulp');
+var $ = require('gulp-load-plugins')();
+var del = require('del');
+var runSequence = require('run-sequence');
+var browserSync = require('browser-sync');
+var pagespeed = require('psi');
+var reload = browserSync.reload;
 
-var sass = require('gulp-sass');
-var browsersync = require('browser-sync').create();
+var AUTOPREFIXER_BROWSERS = [
+  'ie >= 10',
+  'ie_mob >= 10',
+  'ff >= 30',
+  'chrome >= 34',
+  'safari >= 7',
+  'opera >= 23',
+  'ios >= 7',
+  'android >= 4.4',
+  'bb >= 10'
+];
 
+// Lint JavaScript
+gulp.task('jshint', function () {
+  return gulp.src('source/js/**/*.js')
+    .pipe(reload({stream: true, once: true}))
+    .pipe($.jshint())
+    .pipe($.jshint.reporter('jshint-stylish'))
+    .pipe(gulp.dest('app/library/js/'));
+});
 
-// Move PHP Files
-gulp.task('admin', function() {
-  return gulp.src('source/library/*.php')
+// Optimize images
+gulp.task('images', function () {
+  return gulp.src('source/images/*')
+    .pipe($.cache($.imagemin({
+      progressive: true,
+      interlaced: true
+    })))
+    .pipe(gulp.dest('app/library/css/images/'))
+    .pipe($.size({title: 'images'}));
+});
+
+// Compile and automatically prefix stylesheets
+gulp.task('styles', function () {
+  // For best performance, don't add Sass partials to `gulp.src`
+  return gulp.src([
+    'source/scss/style.scss'
+  ])
+    .pipe($.sourcemaps.init())
+    .pipe($.sass({
+      precision: 10,
+      onError: console.error.bind(console, 'Sass error:')
+    }))
+    .pipe($.autoprefixer({browsers: AUTOPREFIXER_BROWSERS}))
+    .pipe($.sourcemaps.write())
+    .pipe(gulp.dest('.tmp/styles'))
+    // Concatenate and minify styles
+    .pipe($.if('*.css', $.csso()))
+    .pipe(gulp.dest('app/library/css/'))
+    .pipe($.size({title: 'styles'}));
+});
+
+gulp.task('build-root', function() {
+  return gulp.src([
+      'source/pages/*.php',
+      'source/images/required/*',
+      'source/library/style.css'
+  ])
+    .pipe(gulp.dest('app/'));
+});
+
+gulp.task('build-library', function() {
+  return gulp.src([
+      'source/library/*.php',
+  ])
     .pipe(gulp.dest('app/library'));
 });
 
-gulp.task('pages', function() {
-  return gulp.src('source/pages/*.php')
-    .pipe(gulp.dest('app'))
-    .pipe(browsersync.stream());
+gulp.task('build', ['build-root', 'build-library', 'images', 'styles']);
+
+gulp.task('clean', del.bind(null, ['.tmp', 'dist/*', '!dist/.git'], {dot: true}));
+
+// Watch files for changes & reload
+gulp.task('serve', ['build', 'styles'], function () {
+  browserSync({
+    notify: false,
+
+    // Customize the BrowserSync console logging prefix
+    logPrefix: 'NAPP',
+    proxy: "127.0.0.1/DIRECTORY",
+
+  });
+
+  gulp.watch(['source/images/**/**/'], ['images', reload]);
+  gulp.watch(['source/pages/*.php'], ['build-root', reload]);
+  gulp.watch(['source/js/**/*.js'], ['jshint']);
+  gulp.watch(['source/scss/**/**/*'], ['styles', reload]);
 });
 
-gulp.task('page-formats', function() {
-  return gulp.src('source/library/page-formats/*.php')
-    .pipe(gulp.dest('app'));
-});
-
-gulp.task('post-formats', function() {
-  return gulp.src('source/library/post-formats/*.php')
-    .pipe(gulp.dest('app/post-formats'));
-});
-
-// Compile and move styles
-gulp.task('css-fix', function() {
-  return gulp.src('source/library/style.css')
-    .pipe(gulp.dest('app'));
-});
-
-gulp.task('scss', function() {
-  return gulp.src('source/scss/style.scss')
-    .pipe(sass())
-    .pipe(gulp.dest('app/library/css'))
-    .pipe(browsersync.stream());
-});
-
-// Move images
-gulp.task('required-assets', function() {
-  return gulp.src('source/assets/required/*')
-    .pipe(gulp.dest('app'))
-    .pipe(browsersync.stream());
-
-});
-
-gulp.task('bonus-assets', function() {
-  return gulp.src('source/assets/bonus/*')
-    .pipe(gulp.dest('app/library/images'))
-    .pipe(browsersync.stream());
-});
-
-//Supply translations
-gulp.task('translations', function() {
-  return gulp.src('source/translation')
-    .pipe(gulp.dest('app/library/'));
-});
-
-//Start watching
-gulp.task('watch', function() {
-  gulp.watch('source/pages/*.php', ['pages']);
-  gulp.watch('source/scss/**/*.scss', ['scss']);
-  gulp.watch('source/assets/bonus/*', ['bonus-assets']);
-  gulp.watch('source/assets/required/*', ['required-assets']);
-})
-
-gulp.task('browser-sync', function() {
-    browsersync.init({
-        proxy: "localhost/DB_NAME"
-    });
-});
-
-gulp.task('default', ['browser-sync', 'admin', 'pages', 'page-formats', 'post-formats', 'css-fix', 'scss', 'required-assets', 'bonus-assets', 'translations', 'watch']);
+// Build production files, the default task
+gulp.task('default', ['build', 'serve', 'jshint']);
